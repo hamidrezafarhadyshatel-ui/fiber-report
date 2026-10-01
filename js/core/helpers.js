@@ -89,7 +89,6 @@
                 .replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
 
         function downloadBlob(blob, name) {
-    consfunction downloadBlob(blob, name) {
     // راه ۱: Web Share API (اسم فایل رو نگه می‌داره ✅)
     try {
         const file = new File([blob], name, { type: blob.type || 'application/octet-stream' });
