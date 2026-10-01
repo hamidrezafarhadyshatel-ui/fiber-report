@@ -89,13 +89,18 @@
                 .replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
 
         function downloadBlob(blob, name) {
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = name;
-            document.body.appendChild(a);
-            a.click();
-            setTimeout(() => { URL.revokeObjectURL(a.href);
-                a.remove(); }, 500);
+    const reader = new FileReader();
+    reader.onload = function() {
+        const a = document.createElement('a');
+        a.href = reader.result;  // data: URL به جای blob:
+        a.download = name;
+        a.target = '_blank';
+        a.rel = 'noopener';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => a.remove(), 500);
+    };
+    reader.readAsDataURL(blob);
         }
 
         const REPORT_STORE_KEY = 'fiber_reports_v2';
