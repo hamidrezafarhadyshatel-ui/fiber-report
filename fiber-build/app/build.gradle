@@ -1,0 +1,5 @@
+plugins { id 'com.android.application' }
+
+android { namespace 'com.fiberreport.app'; compileSdk 35
+ defaultConfig { applicationId 'com.fiberreport.app'; minSdk 23; targetSdk 35; versionCode 1; versionName '9.2' }
+}

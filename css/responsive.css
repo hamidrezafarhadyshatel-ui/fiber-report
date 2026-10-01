@@ -1,0 +1,20 @@
+        @media(max-width:560px){
+            .grid{grid-template-columns:1fr}
+            .full{grid-column:auto}
+            .actions{grid-template-columns:1fr}
+            .dashboard-grid{grid-template-columns:1fr 1fr}
+            .date-wrapper input{font-size:13px;padding:8px}
+            header{flex-direction:column;text-align:center}
+            .header-left{width:100%;justify-content:center}
+            .cabinet-header{flex-direction:column;align-items:stretch}
+            .cabinet-header .cabinet-actions{justify-content:center}
+            .fat-box-item .done-fields,.fat-box-item .not-done-fields{flex-direction:column}
+            .fat-box-item .box-code,.fat-box-item .box-desc,.fat-box-item .box-reason{width:100%}
+            .routehead,.fusion-header,.team-header{flex-direction:column;align-items:stretch}
+            .route-status-buttons,.fusion-status-buttons{justify-content:center}
+            .shoot-route .shoot-destination-item{flex-wrap:wrap}
+            .shoot-route .shoot-destination-item .dest-index{min-width:40px}
+            .omran-item .omran-value-wrapper{flex-direction:column;align-items:stretch}
+            .omran-item .omran-value-wrapper .value-field{width:100%}
+            .footer-copyright{font-size:10px;padding:12px}
+        }

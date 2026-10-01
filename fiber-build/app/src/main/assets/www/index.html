@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#1565c0">
+    <title>سیستم گزارش‌گیری پروژه فیبر نوری</title>
+	<link rel="manifest" href="manifest.json">
+	<script>
+	  if ('serviceWorker' in navigator) {
+		navigator.serviceWorker.register('./sw.js');
+	  }
+	</script>
+    <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
+	<script src="js/vendor/xlsx.full.min.js"></script>
+	<script src="js/vendor/jalali-moment.browser.js"></script>
+	
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/reports.css">
+    <link rel="stylesheet" href="css/responsive.css">
+</head>
+<body>
+    <header>
+        <div>
+            <h1>📋 سیستم گزارش‌گیری پروژه فیبر نوری</h1>
+            <div class="sub">مدیریت یکپارچه گزارش‌های پروژه</div>
+        </div>
+        <div class="header-left" id="headerUser" style="display:none;">
+            <span class="user-info" id="userDisplay">👤 shatel</span>
+            <button class="logout-btn" onclick="logout()">🚪 خروج</button>
+        </div>
+    </header>
+
+    <div class="login-page" id="loginPage">
+        <div class="login-box">
+            <div class="icon"><i class="fas fa-lock"></i></div>
+            <h2>ورود به سیستم</h2>
+            <div class="field">
+                <label>نام کاربری</label>
+                <input type="text" id="loginUser" value="shatel" placeholder="نام کاربری">
+            </div>
+            <div class="field">
+                <label>رمز عبور</label>
+                <input type="password" id="loginPass" placeholder="رمز عبور" onkeydown="if(event.key==='Enter') doLogin()">
+            </div>
+            <button class="login-btn" onclick="doLogin()">ورود</button>
+            <div class="error-msg" id="loginError">نام کاربری یا رمز عبور اشتباه است</div>
+        </div>
+        <div class="login-copyright">
+            <i class="fas fa-code" style="color:#1565c0; margin-left:6px;"></i>
+            Copyright © 2026 — Developed by <span class="name">Hamidreza Farhadi</span>
+            <span style="margin:0 8px;">|</span>
+            <i class="fas fa-heart heart"></i>
+            <span style="margin-right:4px;">All Rights Reserved</span>
+        </div>
+    </div>
+
+    <div class="app-container" id="appContainer">
+        <div class="dashboard" id="dashboard">
+            <h2>📌 انتخاب نوع گزارش</h2>
+            <div class="dashboard-grid">
+                <div class="dash-btn active" data-page="drop"><span class="icon"><i class="fas fa-plug"></i></span>گزارش دراپ کشی<span class="badge">فعال</span></div>
+                <div class="dash-btn active" data-page="fusion"><span class="icon"><i class="fas fa-fire"></i></span>گزارش فیوژن<span class="badge">فعال</span></div>
+                <div class="dash-btn active" data-page="fat"><span class="icon"><i class="fas fa-box"></i></span>گزارش نصب باکس FAT<span class="badge">فعال</span></div>
+                <div class="dash-btn active" data-page="shoot"><span class="icon"><i class="fas fa-bullseye"></i></span>گزارش شوت فیبر<span class="badge">فعال</span></div>
+                <div class="dash-btn active" data-page="omran"><span class="icon"><i class="fas fa-hard-hat"></i></span>گزارش عمران<span class="badge">جدید</span></div>
+            </div>
+        </div>
+
+        <div class="report-page" id="pageDrop"><button class="back-btn" onclick="goBack()">← بازگشت</button><div class="page-title"><i class="fas fa-plug"></i> گزارش دراپ کشی</div>
+            <form id="formDrop"><section class="card"><h2>۱) اطلاعات عمومی</h2><div class="grid"><div class="field full"><label>تاریخ (شمسی) <span class="required">*</span></label><div class="date-wrapper"><input type="number" id="dropYear" placeholder="سال" min="1400" max="1420" required><input type="number" id="dropMonth" placeholder="ماه" min="1" max="12" required><input type="number" id="dropDay" placeholder="روز" min="1" max="31" required></div><span class="small">سال ۱۴۰۰ تا ۱۴۲۰ | ماه ۱ تا ۱۲ | روز بر اساس ماه</span></div><div class="field"><label>پیمانکار <span class="required">*</span></label><input id="dropContractor" class="history-field" required placeholder="نام پیمانکار"></div><div class="field"><label>مسئول تیم دراپ کشی <span class="required">*</span></label><input id="dropReporter" class="history-field" required placeholder="نام مسئول"></div></div></section>
+            <section class="card"><h2>۲) کابینت‌ها و مسیرها</h2><div id="dropCabinets"></div><button type="button" class="secondary big" id="dropAddCabinet">＋ افزودن کابینت</button></section>
+            <section class="card"><h2>۳) ثبت و خروجی</h2><div class="summary" id="dropSummary">هنوز کابینتی اضافه نشده است.</div><div class="actions"><button type="button" class="primary" data-action="save">💾 ذخیره</button><button type="button" class="primary" data-action="excel">📊 Excel</button><button type="button" class="primary" data-action="reportFull">📝 گزارش کامل</button><button type="button" class="primary" data-action="reportSummary">📝 گزارش خلاصه</button><button type="button" class="secondary" data-action="load">📂 بازیابی</button><button type="button" class="secondary" data-action="import">📂 بازیابی از فایل</button><button type="button" class="secondary" data-action="csv">📄 CSV</button><button type="button" class="secondary" data-action="json">📋 JSON</button><button type="button" class="secondary" data-action="preview">👁️ پیش‌نمایش</button><button type="button" class="danger" data-action="new">🗑️ گزارش جدید</button></div><p class="small">ذخیره در مرورگر</p></section></form>
+        </div>
+
+        <div class="report-page" id="pageFusion"><button class="back-btn" onclick="goBack()">← بازگشت</button><div class="page-title"><i class="fas fa-fire"></i> گزارش فیوژن</div>
+            <form id="formFusion"><section class="card"><h2>۱) اطلاعات عمومی</h2><div class="grid"><div class="field full"><label>تاریخ (شمسی) <span class="required">*</span></label><div class="date-wrapper"><input type="number" id="fusionYear" placeholder="سال" min="1400" max="1420" required><input type="number" id="fusionMonth" placeholder="ماه" min="1" max="12" required><input type="number" id="fusionDay" placeholder="روز" min="1" max="31" required></div><span class="small">سال ۱۴۰۰ تا ۱۴۲۰ | ماه ۱ تا ۱۲ | روز بر اساس ماه</span></div><div class="field"><label>پیمانکار <span class="required">*</span></label><input id="fusionContractor" class="history-field" required placeholder="نام پیمانکار"></div><div class="field"><label>مسئول فیوژن <span class="required">*</span></label><input id="fusionReporter" class="history-field" required placeholder="نام مسئول"></div></div></section>
+            <section class="card"><h2>۲) کابینت‌ها و باکس‌های فیوژن</h2><div id="fusionCabinets"></div><button type="button" class="secondary big" id="fusionAddCabinet">＋ افزودن کابینت</button></section>
+            <section class="card"><h2>۳) ثبت و خروجی</h2><div class="summary" id="fusionSummary">هنوز کابینتی اضافه نشده است.</div><div class="actions"><button type="button" class="primary" data-action="save">💾 ذخیره</button><button type="button" class="primary" data-action="excel">📊 Excel</button><button type="button" class="primary" data-action="reportFull">📝 گزارش کامل</button><button type="button" class="primary" data-action="reportSummary">📝 گزارش خلاصه</button><button type="button" class="secondary" data-action="load">📂 بازیابی</button><button type="button" class="secondary" data-action="import">📂 بازیابی از فایل</button><button type="button" class="secondary" data-action="csv">📄 CSV</button><button type="button" class="secondary" data-action="json">📋 JSON</button><button type="button" class="secondary" data-action="preview">👁️ پیش‌نمایش</button><button type="button" class="danger" data-action="new">🗑️ گزارش جدید</button></div><p class="small">ذخیره در مرورگر</p></section></form>
+        </div>
+
+        <div class="report-page" id="pageFat"><button class="back-btn" onclick="goBack()">← بازگشت</button><div class="page-title"><i class="fas fa-box"></i> گزارش نصب باکس FAT</div>
+            <form id="formFat"><section class="card"><h2>۱) اطلاعات عمومی</h2><div class="grid"><div class="field full"><label>تاریخ (شمسی) <span class="required">*</span></label><div class="date-wrapper"><input type="number" id="fatYear" placeholder="سال" min="1400" max="1420" required><input type="number" id="fatMonth" placeholder="ماه" min="1" max="12" required><input type="number" id="fatDay" placeholder="روز" min="1" max="31" required></div><span class="small">سال ۱۴۰۰ تا ۱۴۲۰ | ماه ۱ تا ۱۲ | روز بر اساس ماه</span></div><div class="field"><label>پیمانکار <span class="required">*</span></label><input id="fatContractor" class="history-field" required placeholder="نام پیمانکار"></div><div class="field"><label>مسئول نصب FAT <span class="required">*</span></label><input id="fatReporter" class="history-field" required placeholder="نام مسئول"></div></div></section>
+            <section class="card"><h2>۲) کابینت‌ها و تیم‌های نصب FAT</h2><div id="fatCabinets"></div><button type="button" class="secondary big" id="fatAddCabinet">＋ افزودن کابینت</button></section>
+            <section class="card"><h2>۳) ثبت و خروجی</h2><div class="summary" id="fatSummary">هنوز کابینتی اضافه نشده است.</div><div class="actions"><button type="button" class="primary" data-action="save">💾 ذخیره</button><button type="button" class="primary" data-action="excel">📊 Excel</button><button type="button" class="primary" data-action="reportFull">📝 گزارش کامل</button><button type="button" class="primary" data-action="reportSummary">📝 گزارش خلاصه</button><button type="button" class="secondary" data-action="load">📂 بازیابی</button><button type="button" class="secondary" data-action="import">📂 بازیابی از فایل</button><button type="button" class="secondary" data-action="csv">📄 CSV</button><button type="button" class="secondary" data-action="json">📋 JSON</button><button type="button" class="secondary" data-action="preview">👁️ پیش‌نمایش</button><button type="button" class="danger" data-action="new">🗑️ گزارش جدید</button></div><p class="small">ذخیره در مرورگر</p></section></form>
+        </div>
+
+        <div class="report-page" id="pageShoot"><button class="back-btn" onclick="goBack()">← بازگشت</button><div class="page-title"><i class="fas fa-bullseye"></i> گزارش شوت فیبر</div>
+            <form id="formShoot"><section class="card"><h2>۱) اطلاعات عمومی</h2><div class="grid"><div class="field full"><label>تاریخ (شمسی) <span class="required">*</span></label><div class="date-wrapper"><input type="number" id="shootYear" placeholder="سال" min="1400" max="1420" required><input type="number" id="shootMonth" placeholder="ماه" min="1" max="12" required><input type="number" id="shootDay" placeholder="روز" min="1" max="31" required></div><span class="small">سال ۱۴۰۰ تا ۱۴۲۰ | ماه ۱ تا ۱۲ | روز بر اساس ماه</span></div><div class="field"><label>پیمانکار <span class="required">*</span></label><input id="shootContractor" class="history-field" required placeholder="نام پیمانکار"></div><div class="field"><label>مسئول شوت فیبر <span class="required">*</span></label><input id="shootReporter" class="history-field" required placeholder="نام مسئول"></div></div></section>
+            <section class="card"><h2>۲) کابینت‌ها و مسیرهای شوت</h2><div id="shootCabinets"></div><button type="button" class="secondary big" id="shootAddCabinet">＋ افزودن کابینت</button></section>
+            <section class="card"><h2>۳) ثبت و خروجی</h2><div class="summary" id="shootSummary">هنوز کابینتی اضافه نشده است.</div><div class="actions"><button type="button" class="primary" data-action="save">💾 ذخیره</button><button type="button" class="primary" data-action="excel">📊 Excel</button><button type="button" class="primary" data-action="reportFull">📝 گزارش کامل</button><button type="button" class="primary" data-action="reportSummary">📝 گزارش خلاصه</button><button type="button" class="secondary" data-action="load">📂 بازیابی</button><button type="button" class="secondary" data-action="import">📂 بازیابی از فایل</button><button type="button" class="secondary" data-action="csv">📄 CSV</button><button type="button" class="secondary" data-action="json">📋 JSON</button><button type="button" class="secondary" data-action="preview">👁️ پیش‌نمایش</button><button type="button" class="danger" data-action="new">🗑️ گزارش جدید</button></div><p class="small">ذخیره در مرورگر</p></section></form>
+        </div>
+
+        <div class="report-page" id="pageOmran"><button class="back-btn" onclick="goBack()">← بازگشت</button><div class="page-title"><i class="fas fa-hard-hat"></i> گزارش عمران</div>
+            <form id="formOmran"><section class="card"><h2>۱) اطلاعات عمومی</h2><div class="grid"><div class="field full"><label>تاریخ (شمسی) <span class="required">*</span></label><div class="date-wrapper"><input type="number" id="omranYear" placeholder="سال" min="1400" max="1420" required><input type="number" id="omranMonth" placeholder="ماه" min="1" max="12" required><input type="number" id="omranDay" placeholder="روز" min="1" max="31" required></div><span class="small">سال ۱۴۰۰ تا ۱۴۲۰ | ماه ۱ تا ۱۲ | روز بر اساس ماه</span></div><div class="field"><label>پیمانکار <span class="required">*</span></label><input id="omranContractor" class="history-field" required placeholder="نام پیمانکار"></div><div class="field"><label>مسئول عمران <span class="required">*</span></label><input id="omranReporter" class="history-field" required placeholder="نام مسئول"></div></div></section>
+            <section class="card"><h2>۲) کابینت‌ها، تیم‌ها و آیتم‌های عمرانی</h2><div id="omranCabinets"></div><button type="button" class="secondary big" id="omranAddCabinet">＋ افزودن کابینت</button></section>
+            <section class="card"><h2>۳) ثبت و خروجی</h2><div class="summary" id="omranSummary">هنوز کابینتی اضافه نشده است.</div><div class="actions"><button type="button" class="primary" data-action="save">💾 ذخیره</button><button type="button" class="primary" data-action="excel">📊 Excel</button><button type="button" class="primary" data-action="reportFull">📝 گزارش کامل</button><button type="button" class="primary" data-action="reportSummary">📝 گزارش خلاصه</button><button type="button" class="secondary" data-action="load">📂 بازیابی</button><button type="button" class="secondary" data-action="import">📂 بازیابی از فایل</button><button type="button" class="secondary" data-action="csv">📄 CSV</button><button type="button" class="secondary" data-action="json">📋 JSON</button><button type="button" class="secondary" data-action="preview">👁️ پیش‌نمایش</button><button type="button" class="danger" data-action="new">🗑️ گزارش جدید</button></div><p class="small">ذخیره در مرورگر</p></section></form>
+        </div>
+
+        <div class="footer-copyright">
+            <i class="fas fa-code" style="color:#1565c0; margin-left:6px;"></i>
+            Copyright © 2026 — Developed by <span class="name">Hamidreza Farhadi</span>
+            <span style="margin:0 8px;">|</span>
+            <i class="fas fa-heart heart"></i>
+            <span style="margin-right:4px;">All Rights Reserved</span>
+        </div>
+    </div>
+
+    <div id="toast-container"></div>
+
+    <script src="js/core/helpers.js"></script>
+    <script src="js/core/validation.js"></script>
+    <script src="js/core/storage.js"></script>
+    <script src="js/core/navigation.js"></script>
+    <script src="js/core/reports.js"></script>
+    <script src="js/reports/drop.js"></script>
+    <script src="js/reports/fusion.js"></script>
+    <script src="js/reports/fat.js"></script>
+    <script src="js/reports/shoot.js"></script>
+    <script src="js/reports/omran.js"></script>
+    <script src="js/core/login.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
