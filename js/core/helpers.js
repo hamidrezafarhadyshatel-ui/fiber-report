@@ -89,28 +89,28 @@
                 .replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
 
         function downloadBlob(blob, name) {
+    consfunction downloadBlob(blob, name) {
+    // راه ۱: Web Share API (اسم فایل رو نگه می‌داره ✅)
+    try {
+        const file = new File([blob], name, { type: blob.type || 'application/octet-stream' });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            navigator.share({ files: [file], title: name }).catch(() => {});
+            return;
+        }
+    } catch (e) { console.warn('share failed:', e); }
+
+    // راه ۲: Median bridge (اسم فایل رو از دست می‌ده، ولی حداقل ذخیره می‌کنه)
     const reader = new FileReader();
     reader.onload = function() {
         const dataUrl = reader.result;
-        
-        // راه ۱: Median bridge (lowercase)
         try {
             if (typeof median !== 'undefined' && median.share && typeof median.share.downloadFile === 'function') {
-                median.share.downloadFile({ url: dataUrl, open: false });
+                median.share.downloadFile({ url: dataUrl, open: false, filename: name });
                 return;
             }
         } catch (e) { console.warn('median bridge failed:', e); }
-        
-        // راه ۲: Web Share API (اندروید مدرن - Save to Files)
-        try {
-            const file = new File([blob], name, { type: blob.type || 'application/octet-stream' });
-            if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                navigator.share({ files: [file], title: name }).catch(() => {});
-                return;
-            }
-        } catch (e) { console.warn('share failed:', e); }
-        
-        // راه ۳: fallback قدیمی
+
+        // راه ۳: fallback
         const a = document.createElement('a');
         a.href = dataUrl;
         a.download = name;
@@ -120,7 +120,7 @@
         setTimeout(() => a.remove(), 500);
     };
     reader.readAsDataURL(blob);
-        }
+}
 
         const REPORT_STORE_KEY = 'fiber_reports_v2';
         const DRAFT_PREFIX = 'fiber_draft_';
