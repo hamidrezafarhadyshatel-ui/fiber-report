@@ -89,13 +89,25 @@
                 .replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
 
         function downloadBlob(blob, name) {
+    // ۱. blob رو به data URL تبدیل کن
     const reader = new FileReader();
     reader.onload = function() {
+        const dataUrl = reader.result;
+        
+        // ۲. اگه اپ Median باشه، از API خودش استفاده کن
+        if (typeof window.Median !== 'undefined' && Median.share && Median.share.downloadFile) {
+            Median.share.downloadFile({
+                url: dataUrl,
+                filename: name
+            });
+            return;
+        }
+        
+        // ۳. Fallback برای مرورگر عادی
         const a = document.createElement('a');
-        a.href = reader.result;  // data: URL به جای blob:
+        a.href = dataUrl;
         a.download = name;
-        a.target = '_blank';
-        a.rel = 'noopener';
+        a.style.display = 'none';
         document.body.appendChild(a);
         a.click();
         setTimeout(() => a.remove(), 500);
