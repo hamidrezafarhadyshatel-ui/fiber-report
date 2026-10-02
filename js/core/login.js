@@ -65,7 +65,8 @@ function setupDateValidation(pageId) {
 //  کاربران سیستم
 // ================================================================
 const USERS = [
-    { username: 'shatel', password: '123456', role: 'user' }
+    { username: 'shatel', password: '123456',  role: 'user'  },
+    { username: 'admin',  password: '3259060', role: 'admin' }
 ];
 
 function doLogin() {
@@ -90,6 +91,7 @@ function logout() {
     localStorage.removeItem('fiber_logged_in');
     localStorage.removeItem('fiber_user');
     localStorage.removeItem('fiber_role');
+    if (typeof stopHistoryTrap === 'function') stopHistoryTrap();
     showLogin();
 }
 
@@ -110,6 +112,7 @@ function showApp() {
     const currentRole = localStorage.getItem('fiber_role') || 'user';
     document.getElementById('userDisplay').textContent = '👤 ' + currentUser;
 
+    // نمایش/مخفی کردن دکمه گزارش تجمیعی فقط برای ادمین
     const aggBtn = document.getElementById('dashAggregateBtn');
     if (aggBtn) aggBtn.style.display = (currentRole === 'admin') ? '' : 'none';
 
@@ -128,7 +131,6 @@ function showApp() {
     bindActions();
 
     navigateTo('dashboard');
-
-    // ⭐ این خط اضافه بشه: یه entry پاک کن تا hardware back همیشه گیر بیفته
     history.pushState({ page: 'dashboard' }, '', window.location.pathname);
+    if (typeof startHistoryTrap === 'function') startHistoryTrap();
 }
