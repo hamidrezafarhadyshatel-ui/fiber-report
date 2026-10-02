@@ -1,27 +1,11 @@
+// ================================================================
+// Navigation + Android Back Button Protection
+// ================================================================
+
 let currentPage = 'dashboard';
-let exitInProgress = false;
-let dialogOpen = false;
-let trapTimer = null;
-
-// 🔒 تله دائمی: هر ۸۰۰ میلی‌ثانیه یه state اضافه کن تا همیشه چیزی برای back زدن باشه
-function startHistoryTrap() {
-    if (trapTimer) return;
-    trapTimer = setInterval(() => {
-        if (!dialogOpen && !exitInProgress) {
-            try {
-                history.pushState({ page: currentPage }, '', window.location.pathname);
-            } catch (e) {}
-        }
-    }, 800);
-}
-
-function stopHistoryTrap() {
-    if (trapTimer) clearInterval(trapTimer);
-    trapTimer = null;
-}
+let exiting = false;
 
 function renderPage(page, { focus = true } = {}) {
-    currentPage = page;
     const dashboard = document.getElementById('dashboard');
     const reportPages = document.querySelectorAll('.report-page');
 
@@ -66,102 +50,70 @@ function renderPage(page, { focus = true } = {}) {
     }
 }
 
-function navigateTo(page, { replace = false, focus = true } = {}) {
-    const map = {
-        dashboard: window.location.pathname,
-        drop: window.location.pathname,
-        fusion: window.location.pathname,
-        fat: window.location.pathname,
-        shoot: window.location.pathname,
-        omran: window.location.pathname,
-        aggregate: window.location.pathname
-    };
-    if (!(page in map)) return;
+function navigateTo(page, { focus = true } = {}) {
+    const validPages = ['dashboard', 'drop', 'fusion', 'fat', 'shoot', 'omran', 'aggregate'];
+    if (!validPages.includes(page)) return;
 
     if (page === 'aggregate' && typeof isAggregateAccessAllowed === 'function' && !isAggregateAccessAllowed()) {
         showToast('دسترسی به گزارش تجمیعی فقط برای مدیر سیستم مجاز است.', true);
         page = 'dashboard';
     }
 
-    if (page === 'dashboard') replace = true;
-
     const state = { page };
-    const url = map[page];
-    if (replace) history.replaceState(state, '', url);
-    else history.pushState(state, '', url);
+    if (page === 'dashboard') {
+        history.replaceState(state, '', location.pathname);
+    } else {
+        history.pushState(state, '', location.pathname);
+    }
+
+    currentPage = page;
     renderPage(page, { focus });
 }
 
-function handlePopState(event) {
-    if (exitInProgress || dialogOpen) return;
+// این تابع رو تو showApp صدا بزن به جای navigateTo('dashboard')
+function initNavigation() {
+    history.replaceState({ page: 'dashboard' }, '', location.pathname);
+    history.pushState({ page: 'dashboard' }, '', location.pathname);
+    currentPage = 'dashboard';
+    renderPage('dashboard', { focus: false });
+}
 
-    // اگه تو صفحه گزارش هستیم → برگرد داشبورد
-    if (currentPage !== 'dashboard') {
-        renderPage('dashboard', { focus: false });
+function handlePopState(event) {
+    if (exiting) return;
+
+    const prevPage = currentPage;
+    const targetPage = event.state?.page || 'dashboard';
+
+    // مقصد یک صفحه گزارش است → همون رو نمایش بده
+    if (targetPage !== 'dashboard') {
+        currentPage = targetPage;
+        renderPage(targetPage, { focus: false });
         return;
     }
 
-    // تو داشبورد → دیالوگ تأیید خروج
-    showExitDialog();
+    // مقصد داشبورد است
+    if (prevPage === 'dashboard') {
+        // کاربر روی داشبورد بوده و back زده → تأیید خروج
+        askExitConfirmation();
+        return;
+    }
+
+    // از صفحه گزارش برمی‌گردیم به داشبورد → فقط render کن، دیالوگ نده
+    currentPage = 'dashboard';
+    renderPage('dashboard', { focus: false });
 }
 
-function showExitDialog() {
-    dialogOpen = true;
+function askExitConfirmation() {
+    const shouldExit = window.confirm('آیا می‌خواهید از برنامه خارج شوید؟');
 
-    const overlay = document.createElement('div');
-    overlay.id = 'exit-dialog-overlay';
-    overlay.style.cssText = `
-        position: fixed; inset: 0; background: rgba(0,0,0,0.5);
-        display: flex; align-items: center; justify-content: center;
-        z-index: 99999; direction: rtl; font-family: Tahoma, Arial, sans-serif;
-    `;
-
-    const box = document.createElement('div');
-    box.style.cssText = `
-        background: #fff; border-radius: 14px; padding: 24px 22px;
-        width: 300px; max-width: 85%; text-align: center;
-        box-shadow: 0 10px 40px rgba(0,0,0,0.3);
-    `;
-    box.innerHTML = `
-        <div style="font-size: 40px; margin-bottom: 10px;">🚪</div>
-        <div style="font-size: 16px; font-weight: bold; color: #1565c0; margin-bottom: 20px;">
-            از برنامه خارج می‌شوید؟
-        </div>
-        <div style="display: flex; gap: 10px;">
-            <button id="exitDialogYes" style="
-                flex: 1; padding: 12px; border: 0; border-radius: 10px;
-                background: #c62828; color: #fff; font-weight: bold;
-                font-size: 15px; cursor: pointer; font-family: inherit;
-            ">بله، خروج</button>
-            <button id="exitDialogNo" style="
-                flex: 1; padding: 12px; border: 0; border-radius: 10px;
-                background: #e8f1fb; color: #155a9c; font-weight: bold;
-                font-size: 15px; cursor: pointer; font-family: inherit;
-            ">خیر</button>
-        </div>
-    `;
-
-    overlay.appendChild(box);
-    document.body.appendChild(overlay);
-
-    document.getElementById('exitDialogYes').addEventListener('click', function () {
-        dialogOpen = false;
-        overlay.remove();
-        exitInProgress = true;
+    if (shouldExit) {
+        exiting = true;
         tryExitApp();
-    });
+        return;
+    }
 
-    document.getElementById('exitDialogNo').addEventListener('click', function () {
-        dialogOpen = false;
-        overlay.remove();
-    });
-
-    overlay.addEventListener('click', function (e) {
-        if (e.target === overlay) {
-            dialogOpen = false;
-            overlay.remove();
-        }
-    });
+    // کاربر "خیر" زد → یه guard جدید بذار تا back بعدی هم trigger بشه
+    history.pushState({ page: 'dashboard' }, '', location.pathname);
 }
 
 function tryExitApp() {
@@ -179,6 +131,7 @@ function tryExitApp() {
         return;
     }
 
-    exitInProgress = false;
+    exiting = false;
     showToast('برای خروج، دکمه هوم گوشی را بزنید.', false);
-        }
+    history.pushState({ page: 'dashboard' }, '', location.pathname);
+}
