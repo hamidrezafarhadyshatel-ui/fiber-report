@@ -105,7 +105,13 @@ function showApp() {
     document.getElementById('loginPage').style.display = 'none';
     document.getElementById('appContainer').classList.add('active');
     document.getElementById('headerUser').style.display = 'flex';
-    document.getElementById('userDisplay').textContent = '👤 ' + (localStorage.getItem('fiber_user') || 'shatel');
+
+    const currentUser = localStorage.getItem('fiber_user') || 'shatel';
+    const currentRole = localStorage.getItem('fiber_role') || 'user';
+    document.getElementById('userDisplay').textContent = '👤 ' + currentUser;
+
+    const aggBtn = document.getElementById('dashAggregateBtn');
+    if (aggBtn) aggBtn.style.display = (currentRole === 'admin') ? '' : 'none';
 
     initAllFieldHistories();
     if (!document.querySelector('#dropCabinets .cabinet-block')) addDropCabinet();
@@ -122,4 +128,7 @@ function showApp() {
     bindActions();
 
     navigateTo('dashboard');
+
+    // ⭐ این خط اضافه بشه: یه entry پاک کن تا hardware back همیشه گیر بیفته
+    history.pushState({ page: 'dashboard' }, '', window.location.pathname);
 }
