@@ -1,4 +1,10 @@
+let currentPage = 'dashboard';
+let backPressCount = 0;
+let backPressTimer = null;
+let exitInProgress = false;
+
 function renderPage(page, { focus = true } = {}) {
+    currentPage = page;
     const dashboard = document.getElementById('dashboard');
     const reportPages = document.querySelectorAll('.report-page');
 
@@ -13,14 +19,27 @@ function renderPage(page, { focus = true } = {}) {
         fusion: 'pageFusion',
         fat: 'pageFat',
         shoot: 'pageShoot',
-        omran: 'pageOmran'
+        omran: 'pageOmran',
+        aggregate: 'pageAggregate'
     };
     const targetId = map[page];
     if (!targetId) return;
 
+    if (page === 'aggregate' && typeof isAggregateAccessAllowed === 'function' && !isAggregateAccessAllowed()) {
+        showToast('دسترسی به گزارش تجمیعی فقط برای مدیر سیستم مجاز است.', true);
+        currentPage = 'dashboard';
+        return navigateTo('dashboard');
+    }
+
     if (dashboard) dashboard.style.display = 'none';
     reportPages.forEach(el => el.classList.remove('active'));
     document.getElementById(targetId)?.classList.add('active');
+
+    if (page === 'aggregate') {
+        if (typeof initAggregatePage === 'function') initAggregatePage();
+        if (typeof renderAggregateUI === 'function') renderAggregateUI();
+        return;
+    }
 
     setupDateValidation(page);
     bindActions();
@@ -47,7 +66,7 @@ function navigateTo(page, { replace = false, focus = true } = {}) {
         page = 'dashboard';
     }
 
-    // ⭐ مهم: وقتی به داشبورد برمی‌گردیم، replace کن تا history اضافه نشه
+    // وقتی به داشبورد برمی‌گردیم، entry جدید نساز
     if (page === 'dashboard') replace = true;
 
     const state = { page };
@@ -57,50 +76,40 @@ function navigateTo(page, { replace = false, focus = true } = {}) {
     renderPage(page, { focus });
 }
 
-let backPressCount = 0;
-let backPressTimer = null;
-
 function handlePopState(event) {
-    const page = event.state?.page;
+    if (exitInProgress) return;
 
-    // اگه تو داشبورد یا ریشه هستیم → تلاش برای خروج
-    if (!page || page === 'dashboard') {
-        // اگه کاربر قبلاً back زده بود تو ۲ ثانیه اخیر
-        if (backPressCount > 0) {
-            clearTimeout(backPressTimer);
-            tryExitApp();
-            return;
-        }
-
-        // بار اول: به کاربر بگو دوباره بزنه + یه entry مجدد push کن
-        backPressCount++;
-        showToast('برای خروج، دکمه بازگشت را دوباره بزنید.', false);
-
-        // یه state جدید push کن تا back بعدی هم trigger بشه
+    // اگر تو صفحه گزارش هستیم → اولین بک باید برگرده به داشبورد
+    if (currentPage !== 'dashboard') {
+        renderPage('dashboard', { focus: false });
+        // یه entry پاک کن تا کاربر واقعاً تو داشبورد بمونه
         history.pushState({ page: 'dashboard' }, '', window.location.pathname);
-
-        backPressTimer = setTimeout(() => {
-            backPressCount = 0;
-        }, 2000);
         return;
     }
 
-    // در غیر این صورت، page عوض کن
-    renderPage(page, { focus: false });
+    // الان تو داشبورد هستیم → دو-ضربه برای خروج
+    if (backPressCount > 0) {
+        clearTimeout(backPressTimer);
+        backPressCount = 0;
+        exitInProgress = true;
+        tryExitApp();
+        return;
+    }
+
+    backPressCount++;
+    showToast('برای خروج، دکمه بازگشت را دوباره بزنید.', false);
+    history.pushState({ page: 'dashboard' }, '', window.location.pathname);
+    backPressTimer = setTimeout(() => {
+        backPressCount = 0;
+    }, 2000);
 }
 
 function tryExitApp() {
     // تلاش ۱: Median bridge
     try {
-        if (typeof median !== 'undefined') {
-            if (median.navigation && typeof median.navigation.close === 'function') {
-                median.navigation.close();
-                return;
-            }
-            if (median.app && typeof median.app.exit === 'function') {
-                median.app.exit();
-                return;
-            }
+        if (typeof median !== 'undefined' && median.navigation && typeof median.navigation.close === 'function') {
+            median.navigation.close();
+            return;
         }
     } catch (e) { console.warn('Median exit failed:', e); }
 
@@ -113,6 +122,7 @@ function tryExitApp() {
         return;
     }
 
-    // تلاش ۴: به کاربر بگو با هوم بزنه
+    // اگه هیچ‌کدوم جواب نداد
+    exitInProgress = false;
     showToast('برای خروج، دکمه هوم گوشی را بزنید.', false);
 }
