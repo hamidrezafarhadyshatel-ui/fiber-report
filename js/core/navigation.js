@@ -1,7 +1,7 @@
 let currentPage = 'dashboard';
-let backPressCount = 0;
-let backPressTimer = null;
+let lastBackPressTime = 0;
 let exitInProgress = false;
+const DOUBLE_BACK_INTERVAL = 1500; // ۱.۵ ثانیه
 
 function renderPage(page, { focus = true } = {}) {
     currentPage = page;
