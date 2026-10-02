@@ -1,6 +1,24 @@
 let currentPage = 'dashboard';
 let exitInProgress = false;
 let dialogOpen = false;
+let trapTimer = null;
+
+// 🔒 تله دائمی: هر ۸۰۰ میلی‌ثانیه یه state اضافه کن تا همیشه چیزی برای back زدن باشه
+function startHistoryTrap() {
+    if (trapTimer) return;
+    trapTimer = setInterval(() => {
+        if (!dialogOpen && !exitInProgress) {
+            try {
+                history.pushState({ page: currentPage }, '', window.location.pathname);
+            } catch (e) {}
+        }
+    }, 800);
+}
+
+function stopHistoryTrap() {
+    if (trapTimer) clearInterval(trapTimer);
+    trapTimer = null;
+}
 
 function renderPage(page, { focus = true } = {}) {
     currentPage = page;
@@ -80,11 +98,10 @@ function handlePopState(event) {
     // اگه تو صفحه گزارش هستیم → برگرد داشبورد
     if (currentPage !== 'dashboard') {
         renderPage('dashboard', { focus: false });
-        history.pushState({ page: 'dashboard' }, '', window.location.pathname);
         return;
     }
 
-    // تو داشبورد هستیم → دیالوگ تأیید خروج
+    // تو داشبورد → دیالوگ تأیید خروج
     showExitDialog();
 }
 
@@ -137,16 +154,12 @@ function showExitDialog() {
     document.getElementById('exitDialogNo').addEventListener('click', function () {
         dialogOpen = false;
         overlay.remove();
-        // دوباره entry trap بذار تا بک بعدی هم trigger بشه
-        history.pushState({ page: 'dashboard' }, '', window.location.pathname);
     });
 
-    // کلیک روی پس‌زمینه = خیر
     overlay.addEventListener('click', function (e) {
         if (e.target === overlay) {
             dialogOpen = false;
             overlay.remove();
-            history.pushState({ page: 'dashboard' }, '', window.location.pathname);
         }
     });
 }
@@ -168,4 +181,4 @@ function tryExitApp() {
 
     exitInProgress = false;
     showToast('برای خروج، دکمه هوم گوشی را بزنید.', false);
-}
+        }
