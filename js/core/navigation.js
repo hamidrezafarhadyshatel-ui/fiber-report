@@ -79,29 +79,29 @@ function navigateTo(page, { replace = false, focus = true } = {}) {
 function handlePopState(event) {
     if (exitInProgress) return;
 
-    // اگر تو صفحه گزارش هستیم → اولین بک باید برگرده به داشبورد
+    // اگه تو صفحه گزارش هستیم → برگرد به داشبورد
     if (currentPage !== 'dashboard') {
         renderPage('dashboard', { focus: false });
-        // یه entry پاک کن تا کاربر واقعاً تو داشبورد بمونه
         history.pushState({ page: 'dashboard' }, '', window.location.pathname);
+        lastBackPressTime = 0; // ریست کن تا بک بعدی تازه حساب بشه
         return;
     }
 
-    // الان تو داشبورد هستیم → دو-ضربه برای خروج
-    if (backPressCount > 0) {
-        clearTimeout(backPressTimer);
-        backPressCount = 0;
+    // تو داشبورد هستیم → چک کن فاصله از بک قبلی چقدره
+    const now = Date.now();
+    const timeSinceLast = now - lastBackPressTime;
+
+    if (timeSinceLast < DOUBLE_BACK_INTERVAL && lastBackPressTime > 0) {
+        // دو تا بک سریع → خروج
         exitInProgress = true;
         tryExitApp();
         return;
     }
 
-    backPressCount++;
+    // بک اول (یا بعد از فاصله زیاد) → پیام بده
+    lastBackPressTime = now;
     showToast('برای خروج، دکمه بازگشت را دوباره بزنید.', false);
     history.pushState({ page: 'dashboard' }, '', window.location.pathname);
-    backPressTimer = setTimeout(() => {
-        backPressCount = 0;
-    }, 2000);
 }
 
 function tryExitApp() {
