@@ -130,7 +130,5 @@ function showApp() {
     setupDateValidation('omran');
     bindActions();
 
-    navigateTo('dashboard');
-    history.pushState({ page: 'dashboard' }, '', window.location.pathname);
-    if (typeof startHistoryTrap === 'function') startHistoryTrap();
+        initNavigation();
 }
