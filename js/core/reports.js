@@ -129,14 +129,34 @@
             showToast('خروجی CSV ساخته شد.', false);
         }
 
-        function exportJSON(config) {
-            const validation = validateCurrentReport(config); if (!validation.ok) { showToast(validation.message, true); return; }
-            const data = config.collect();
-            const fileName = generateFileName(config.reportType, data.date, 'json');
-            downloadBlob(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json;charset=utf-8' }),
-            fileName);
-            showToast('خروجی JSON ساخته شد.', false);
+        async function exportJSON(config) {
+    const validation = validateCurrentReport(config);
+    if (!validation.ok) { showToast(validation.message, true); return; }
+    const data = config.collect();
+    const fileName = generateFileName(config.reportType, data.date, 'json');
+    const jsonString = JSON.stringify(data, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json;charset=utf-8' });
+
+    // تلاش برای اشتراک‌گذاری از طریق منوی اندروید
+    try {
+        const file = new File([blob], fileName, { type: 'application/json' });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            await navigator.share({
+                files: [file],
+                title: 'گزارش ' + config.reportName,
+                text: 'تاریخ: ' + data.date
+            });
+            return;
         }
+    } catch (e) {
+        if (e.name === 'AbortError') return; // کاربر انصراف داد
+        console.warn('Share failed:', e);
+    }
+
+    // Fallback: اگه اشتراک‌گذاری ممکن نبود، دانلود کن
+    downloadBlob(blob, fileName);
+    showToast('خروجی JSON ساخته شد.', false);
+}
 
         function generateTextReport(config, type) {
             const validation = validateCurrentReport(config); if (!validation.ok) { showToast(validation.message, true); return; }
