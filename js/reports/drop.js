@@ -338,11 +338,11 @@ function updateDropSummary() {
     if (!totalRoutes) { el.textContent = 'هنوز کابینتی اضافه نشده است.'; return; }
     const doneCount = data.reduce((s, c) => s + c.teams.reduce((a, t) => a + t.routes.filter(r => r.status !== 'not_done').length, 0), 0);
     const notDoneCount = totalRoutes - doneCount;
-    el.innerHTML = `کابینت‌ها: <b>${data.length}</b>　| کل مسیرها: <b>${totalRoutes}</b> (انجام‌شده: <b>${doneCount}</b> | انجام‌نشده: <b>${notDoneCount}</b>)　| متراژ: <b>${totalMeters}</b> متر`;
+    el.innerHTML = `کابینت‌ها: <b>${data.length}</b>　| کل مسیرها: <b>${totalRoutes}</b> (انجام‌شده: <b>${doneCount}</b> | انجام‌نشده: <b>${notDoneCount}</b>)　| متراژ: <b>${totalMeters}</b> متر　| باکس MFAT مصرفی: <b>${doneCount}</b> عدد`;
 }
 
 function calculateDropTotals(data) {
-    const totals = { totalLength: 0, totalClamp: 0, totalWire15: 0, totalWire1: 0, totalScrew: 0, cableTypes: {} };
+    const totals = { totalLength: 0, totalClamp: 0, totalWire15: 0, totalWire1: 0, totalScrew: 0, totalMfat: 0, cableTypes: {} };
     data.cabinets.forEach(cab => {
         cab.teams?.forEach(team => {
             team.routes?.filter(r => r.status !== 'not_done').forEach(r => {
@@ -351,6 +351,7 @@ function calculateDropTotals(data) {
                 totals.totalWire15 += parseFloat(r.wire15) || 0;
                 totals.totalWire1 += parseFloat(r.wire1) || 0;
                 totals.totalScrew += parseFloat(r.screwRawl) || 0;
+                totals.totalMfat += 1; // هر مسیر انجام‌شده = یک باکس MFAT
                 const type = r.cableType || '8';
                 totals.cableTypes[type] = (totals.cableTypes[type] || 0) + (parseFloat(r.length) || 0);
             });
@@ -379,15 +380,16 @@ function buildDropExcelRows(data) {
     ];
     let n = 1;
     if (doneRoutes.length) {
-        rows.push(['ردیف', 'تاریخ', 'کابینت', 'استان', 'شهر', 'منطقه', 'تیم', 'مقصد', 'مبدأ', 'نوع کابل', 'طول (متر)', 'کد ابتدا', 'کد انتها', 'بست (عدد)', 'مفتول 1 (متر)', 'مفتول 1.5 (متر)', 'پیچ/رول‌پلاک (عدد)', 'توضیحات']);
+        rows.push(['ردیف', 'تاریخ', 'کابینت', 'استان', 'شهر', 'منطقه', 'تیم', 'مقصد', 'مبدأ', 'نوع کابل', 'طول (متر)', 'کد ابتدا', 'کد انتها', 'بست (عدد)', 'مفتول 1 (متر)', 'مفتول 1.5 (متر)', 'پیچ/رول‌پلاک (عدد)', 'باکس MFAT (عدد)', 'توضیحات']);
         doneRoutes.forEach(r => {
-            rows.push([n++, data.date, r.cabinet || '', r.province || '', r.city || '', r.region || '', r.team || '', r.destination || '', r.source || '', r.cableType || '', parseFloat(r.length) || 0, r.startCode || '', r.endCode || '', parseFloat(r.clamp) || 0, parseFloat(r.wire1) || 0, parseFloat(r.wire15) || 0, parseFloat(r.screwRawl) || 0, r.notes || '']);
+            rows.push([n++, data.date, r.cabinet || '', r.province || '', r.city || '', r.region || '', r.team || '', r.destination || '', r.source || '', r.cableType || '', parseFloat(r.length) || 0, r.startCode || '', r.endCode || '', parseFloat(r.clamp) || 0, parseFloat(r.wire1) || 0, parseFloat(r.wire15) || 0, parseFloat(r.screwRawl) || 0, 1, r.notes || '']);
         });
     }
     if (doneRoutes.length) {
         const totals = calculateDropTotals(data);
         rows.push([]);
-        rows.push(['جمع کل (انجام‌شده)', '', '', '', '', '', '', '', '', '', totals.totalLength, '', '', totals.totalClamp, totals.totalWire1, totals.totalWire15, totals.totalScrew, '']);
+        rows.push(['جمع کل (انجام‌شده)', '', '', '', '', '', '', '', '', '', totals.totalLength, '', '', totals.totalClamp, totals.totalWire1, totals.totalWire15, totals.totalScrew, totals.totalMfat, '']);
+        rows.push(['مصرفی', `باکس MFAT به تعداد ${totals.totalMfat} عدد`]);
     }
     if (notDoneRoutes.length) {
         rows.push([]);
@@ -417,12 +419,18 @@ function buildDropCSVRows(data) {
         ['پیمانکار', data.contractor, '', 'مسئول تیم دراپ کشی', data.reporter],
         [],
         ['✅ مسیرهای انجام‌شده'],
-        ['ردیف', 'تاریخ', 'کابینت', 'استان', 'شهر', 'منطقه', 'تیم', 'مقصد', 'مبدأ', 'نوع کابل', 'طول (متر)', 'کد ابتدا', 'کد انتها', 'بست (عدد)', 'مفتول 1 (متر)', 'مفتول 1.5 (متر)', 'پیچ/رول‌پلاک (عدد)', 'توضیحات']
+        ['ردیف', 'تاریخ', 'کابینت', 'استان', 'شهر', 'منطقه', 'تیم', 'مقصد', 'مبدأ', 'نوع کابل', 'طول (متر)', 'کد ابتدا', 'کد انتها', 'بست (عدد)', 'مفتول 1 (متر)', 'مفتول 1.5 (متر)', 'پیچ/رول‌پلاک (عدد)', 'باکس MFAT (عدد)', 'توضیحات']
     ];
     let n = 1;
     doneRoutes.forEach(r => {
-        rows.push([n++, data.date, r.cabinet || '', r.province || '', r.city || '', r.region || '', r.team || '', r.destination || '', r.source || '', r.cableType || '', parseFloat(r.length) || 0, r.startCode || '', r.endCode || '', parseFloat(r.clamp) || 0, parseFloat(r.wire1) || 0, parseFloat(r.wire15) || 0, parseFloat(r.screwRawl) || 0, r.notes || '']);
+        rows.push([n++, data.date, r.cabinet || '', r.province || '', r.city || '', r.region || '', r.team || '', r.destination || '', r.source || '', r.cableType || '', parseFloat(r.length) || 0, r.startCode || '', r.endCode || '', parseFloat(r.clamp) || 0, parseFloat(r.wire1) || 0, parseFloat(r.wire15) || 0, parseFloat(r.screwRawl) || 0, 1, r.notes || '']);
     });
+    if (doneRoutes.length) {
+        const totals = calculateDropTotals(data);
+        rows.push([]);
+        rows.push(['جمع کل (انجام‌شده)', '', '', '', '', '', '', '', '', '', totals.totalLength, '', '', totals.totalClamp, totals.totalWire1, totals.totalWire15, totals.totalScrew, totals.totalMfat, '']);
+        rows.push(['مصرفی', `باکس MFAT به تعداد ${totals.totalMfat} عدد`]);
+    }
     if (notDoneRoutes.length) {
         rows.push([]);
         rows.push(['❌ مسیرهای انجام‌نشده']);
@@ -452,7 +460,8 @@ function buildDropTextReport(data, type) {
             const cabMetrics = joinNonZeroMetrics([
                 ['تعداد کل مسیرها', cabRoutes.length, ''], ['انجام‌شده', cabDone.length, ''], ['انجام‌نشده', cabNotDone.length, ''],
                 ['متراژ کل', cabTotals.totalLength, 'متر'], ['بست', cabTotals.totalClamp, 'عدد'],
-                ['مفتول 1', cabTotals.totalWire1, 'متر'], ['مفتول 1.5', cabTotals.totalWire15, 'متر'], ['پیچ و رول‌پلاک', cabTotals.totalScrew, 'عدد']
+                ['مفتول 1', cabTotals.totalWire1, 'متر'], ['مفتول 1.5', cabTotals.totalWire15, 'متر'], ['پیچ و رول‌پلاک', cabTotals.totalScrew, 'عدد'],
+                ['باکس MFAT مصرفی', cabTotals.totalMfat, 'عدد']
             ], '\n');
             if (cabMetrics) text += cabMetrics.split('\n').map(line => `  ${line}`).join('\n') + '\n';
             const cableDetail = Object.keys(cabTotals.cableTypes).sort().map(k => `${k}Core: ${cabTotals.cableTypes[k]}m`).join(' | ');
@@ -463,7 +472,8 @@ function buildDropTextReport(data, type) {
         text += '\n─────────────────────\n📊 جمع نهایی کل گزارش\n─────────────────────\n\n';
         const totalMetrics = joinNonZeroMetrics([
             ['مجموع متراژ کل', totals.totalLength, 'متر'], ['بست', totals.totalClamp, 'عدد'],
-            ['مفتول 1', totals.totalWire1, 'متر'], ['مفتول 1.5', totals.totalWire15, 'متر'], ['پیچ و رول‌پلاک', totals.totalScrew, 'عدد']
+            ['مفتول 1', totals.totalWire1, 'متر'], ['مفتول 1.5', totals.totalWire15, 'متر'], ['پیچ و رول‌پلاک', totals.totalScrew, 'عدد'],
+            ['باکس MFAT مصرفی', totals.totalMfat, 'عدد']
         ], '\n');
         if (totalMetrics) text += totalMetrics.split('\n').map(line => `  ${line}`).join('\n') + '\n';
         const totalCableDetail = Object.keys(totals.cableTypes).sort().map(k => `${k}Core: ${totals.cableTypes[k]}m`).join(' | ');
@@ -492,7 +502,8 @@ function buildDropTextReport(data, type) {
                 const teamTotals = calculateDropTotals({ cabinets: [{ teams: [{ routes: teamRoutes }] }] });
                 const teamSummary = joinNonZeroMetrics([
                     ['متراژ', teamTotals.totalLength, 'm'], ['بست', teamTotals.totalClamp, ''],
-                    ['مفتول1', teamTotals.totalWire1, 'm'], ['مفتول1.5', teamTotals.totalWire15, 'm'], ['پیچ', teamTotals.totalScrew, '']
+                    ['مفتول1', teamTotals.totalWire1, 'm'], ['مفتول1.5', teamTotals.totalWire15, 'm'], ['پیچ', teamTotals.totalScrew, ''],
+                    ['باکس MFAT', teamTotals.totalMfat, 'عدد']
                 ]);
                 if (teamSummary) text += `  جمع تیم: ${teamSummary}\n\n`;
             }
@@ -506,7 +517,8 @@ function buildDropTextReport(data, type) {
         });
         const cabSummary = joinNonZeroMetrics([
             ['انجام‌شده', doneRoutes.length, ''], ['انجام‌نشده', notDoneRoutes.length, ''], ['متراژ کل', cabTotals.totalLength, 'm'],
-            ['بست', cabTotals.totalClamp, ''], ['مفتول1', cabTotals.totalWire1, 'm'], ['مفتول1.5', cabTotals.totalWire15, 'm'], ['پیچ', cabTotals.totalScrew, '']
+            ['بست', cabTotals.totalClamp, ''], ['مفتول1', cabTotals.totalWire1, 'm'], ['مفتول1.5', cabTotals.totalWire15, 'm'], ['پیچ', cabTotals.totalScrew, ''],
+            ['باکس MFAT', cabTotals.totalMfat, 'عدد']
         ]);
         if (cabSummary) text += `📊 جمع کابینت: ${cabSummary}\n`;
         if (cabIdx < data.cabinets.length - 1) text += '\n';
@@ -515,7 +527,8 @@ function buildDropTextReport(data, type) {
     text += '\n─────────────────────\n📊 جمع نهایی کل گزارش\n─────────────────────\n\n';
     const totalMetrics = joinNonZeroMetrics([
         ['مجموع متراژ کل', totals.totalLength, 'متر'], ['بست', totals.totalClamp, 'عدد'],
-        ['مفتول 1', totals.totalWire1, 'متر'], ['مفتول 1.5', totals.totalWire15, 'متر'], ['پیچ و رول‌پلاک', totals.totalScrew, 'عدد']
+        ['مفتول 1', totals.totalWire1, 'متر'], ['مفتول 1.5', totals.totalWire15, 'متر'], ['پیچ و رول‌پلاک', totals.totalScrew, 'عدد'],
+        ['باکس MFAT مصرفی', totals.totalMfat, 'عدد']
     ], '\n');
     if (totalMetrics) text += totalMetrics.split('\n').map(line => `  ${line}`).join('\n') + '\n';
     const totalCableDetail = Object.keys(totals.cableTypes).sort().map(k => `${k}Core: ${totals.cableTypes[k]}m`).join(' | ');
@@ -532,6 +545,7 @@ function buildDropPreviewHTML(data) {
         .team,.item{margin:12px 16px;padding:12px;border-radius:9px;background:#fafcff;border:1px solid #e4ebf2}.team h3{margin:0 0 8px;color:#37474f}
         table{width:100%;border-collapse:collapse;margin-top:8px;font-size:13px}th,td{border:1px solid #dfe6ed;padding:7px;text-align:right;vertical-align:top}th{background:#f0f4f8}
         .done{color:#2e7d32}.notdone{color:#c62828}.summary{background:#f8fafc;border:1px dashed #b0bec5;padding:12px;border-radius:9px;margin-top:14px}
+        .cab-summary{background:#eef4fa;padding:8px 12px;border-radius:6px;margin:10px 0;font-weight:bold;border:1px solid #d8e2ec}
         .no-print{display:inline-block;margin:18px auto 0;padding:9px 20px;border:0;border-radius:8px;background:#1565c0;color:#fff;cursor:pointer}
         @media print{body{background:#fff;padding:0}.wrap{box-shadow:none;max-width:none}.no-print{display:none}}
     `;
@@ -565,9 +579,25 @@ function buildDropPreviewHTML(data) {
         totalLength += cabLen;
         content += `<div class="cab"><h2>کابینت ${escP(c.cabinetNumber)} — ${escP(c.province)} / ${escP(c.city)} / منطقه ${escP(c.region)}</h2>`;
         content += teamRows;
+        // ⭐ خلاصه کابینت با MFAT
+        const cabPreviewSummary = joinNonZeroMetrics([
+            ['انجام‌شده', cabDone, ''],
+            ['انجام‌نشده', cabNotDone, ''],
+            ['متراژ', cabLen, 'متر'],
+            ['باکس MFAT مصرفی', cabDone, 'عدد']
+        ]);
+        if (cabPreviewSummary) {
+            content += `<div class="cab-summary">📊 جمع کابینت: ${cabPreviewSummary}</div>`;
+        }
         content += `</div>`;
     });
-    const finalPreviewSummary = joinNonZeroMetrics([['انجام‌شده', done, ''], ['انجام‌نشده', notDone, ''], ['مجموع متراژ', totalLength, 'متر']]);
+    // ⭐ خلاصه نهایی با MFAT
+    const finalPreviewSummary = joinNonZeroMetrics([
+        ['انجام‌شده', done, ''],
+        ['انجام‌نشده', notDone, ''],
+        ['مجموع متراژ', totalLength, 'متر'],
+        ['باکس MFAT مصرفی', done, 'عدد']
+    ]);
     content += `<div class="summary"><b>خلاصه:</b> ${finalPreviewSummary}</div><button class="no-print" onclick="window.print()">🖨️ چاپ</button></div><script>setTimeout(()=>window.print(),700)<\/script></body></html>`;
     return content;
 }
